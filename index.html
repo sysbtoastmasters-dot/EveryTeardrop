@@ -2,23 +2,27 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coldplay 歌詞深度學習挑戰</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Every Teardrop 歌詞挑戰</title>
     <style>
-        body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background-color: #f0f4f8; display: flex; justify-content: center; padding: 20px; }
-        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
+        body { font-family: 'Microsoft JhengHei', -apple-system, sans-serif; background-color: #f0f4f8; display: flex; justify-content: center; padding: 15px; margin: 0; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; box-sizing: border-box; position: relative; min-height: 400px; }
+        
+        /* 初始遮罩層 */
+        #start-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; padding: 20px; box-sizing: border-box; }
+        
         .score-box { font-size: 1.1em; margin-bottom: 20px; color: #555; background: #eef; padding: 10px; border-radius: 10px; }
-        .question { font-size: 1.6em; font-weight: bold; margin-bottom: 20px; min-height: 90px; color: #333; }
+        .question { font-size: 1.5em; font-weight: bold; margin-bottom: 20px; min-height: 80px; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .ipa { font-size: 0.7em; color: #888; font-weight: normal; margin-top: 5px; display: block; }
         .pos { color: #1a73e8; font-size: 0.8em; font-style: italic; margin-right: 5px; }
-        .options { display: grid; gap: 10px; }
-        button { padding: 12px; font-size: 1em; border: 2px solid #eee; border-radius: 10px; cursor: pointer; background: #fff; transition: 0.2s; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-        button:hover:not(:disabled) { border-color: #4285f4; background: #f8fbff; }
-        button:disabled { opacity: 0.6; cursor: not-allowed; }
-        .next-btn { background: #34a853; color: white; border: none; padding: 15px; font-weight: bold; margin-top: 20px; display: none; width: 100%; font-size: 1.2em; border-radius: 10px; cursor: pointer; }
-        .start-btn { background: #4285f4; color: white; border: none; padding: 20px; font-size: 1.5em; width: 100%; border-radius: 15px; cursor: pointer; }
-        .end-btn { background: #ff4757; color: white; border: none; padding: 12px; font-weight: bold; margin-top: 10px; width: 100%; font-size: 1em; border-radius: 10px; cursor: pointer; }
-        .correct { border-color: #2ecc71 !important; background: #e8f5e9 !important; color: #27ae60; font-weight: bold; }
+        .options { display: grid; gap: 10px; width: 100%; }
+        
+        button { padding: 15px; font-size: 1em; border: 2px solid #eee; border-radius: 12px; cursor: pointer; background: #fff; width: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; box-sizing: border-box; }
+        .start-btn { background: #4285f4; color: white; border: none; padding: 20px; font-size: 1.5em; font-weight: bold; border-radius: 15px; cursor: pointer; }
+        .next-btn { background: #34a853; color: white; border: none; padding: 18px; font-weight: bold; margin-top: 15px; font-size: 1.2em; display: none; }
+        .exit-btn { background: #ff4757; color: white; border: none; padding: 15px; font-weight: bold; margin-top: 15px; border-radius: 12px; }
+        
+        .correct { border-color: #2ecc71 !important; background: #e8f5e9 !important; color: #27ae60; }
         .wrong { border-color: #e74c3c !important; background: #ffebee !important; color: #c0392b; }
         #feedback { margin-top: 15px; font-weight: bold; height: 25px; }
     </style>
@@ -27,27 +31,23 @@
 
 <div class="card">
     <div id="start-screen">
-        <h2 style="color:#4285f4">Coldplay 歌詞深度學習</h2>
-        <p>答錯需測到正確為止 | 詞性、音標、語音版</p>
-        <button class="start-btn" onclick="startGame()">開始挑戰</button>
+        <h2 style="color:#4285f4; margin-top:0;">Every Teardrop<br>歌詞單字挑戰</h2>
+        <p style="color:#666;">手機版優化：點擊下方開始</p>
+        <button id="real-start-btn" class="start-btn">開始挑戰 🚀</button>
     </div>
 
-    <div id="game-screen" style="display:none">
+    <div id="main-game">
         <div class="score-box">答對數 / 總題數: <span id="correct-count">0</span> / <span id="total-count">0</span></div>
-        
         <div class="question">
-            <div id="q-text">載入中...</div>
+            <div id="q-text">準備中...</div>
             <div id="q-ipa" class="ipa"></div>
         </div>
-
         <div class="options" id="options-container"></div>
         <div id="feedback"></div>
-        
-        <button id="next-button" class="next-btn" onclick="renderQuestion()">繼續下一題 ➔</button>
-        <button id="exit-button" class="end-btn" onclick="endGame()">結束練習</button>
-
-        <div style="margin-top:25px; border-top:1px solid #eee; padding-top:15px; display:flex; justify-content:space-between">
-            <label style="font-size:0.9em; cursor:pointer"><input type="checkbox" id="voice-toggle" checked> 🔊 語音</label>
+        <button id="next-button" class="next-btn">繼續下一題 ➔</button>
+        <button id="exit-button" class="exit-btn">結束練習 🏁</button>
+        <div style="margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+            <label style="cursor:pointer;"><input type="checkbox" id="voice-toggle" checked> 🔊 語音開啟</label>
         </div>
     </div>
 </div>
@@ -76,41 +76,35 @@
         { en: "Pulse", pos: "n.", ipa: "/pʌls/", zh: "脈搏/律動" }
     ];
 
-    let score = 0;
-    let total = 0;
-    let currentItem = {};
-    let enToZh = true;
-    let hasErrored = false;
+    let score = 0, total = 0, currentItem = {}, enToZh = true, hasErrored = false;
 
-    function startGame() {
-        score = 0;
-        total = 0;
-        document.getElementById('correct-count').innerText = "0";
-        document.getElementById('total-count').innerText = "0";
+    // 強制綁定按鈕事件
+    document.getElementById('real-start-btn').addEventListener('click', function() {
         document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('game-screen').style.display = 'block';
+        score = 0; total = 0;
         renderQuestion();
-    }
+    });
+
+    document.getElementById('next-button').addEventListener('click', renderQuestion);
+    document.getElementById('exit-button').addEventListener('click', function() {
+        const rate = total === 0 ? 0 : Math.round((score / total) * 100);
+        alert(`測驗統計：\n得分：${score} / ${total}\n正確率：${rate}%`);
+        location.reload();
+    });
 
     function renderQuestion() {
         document.getElementById('next-button').style.display = 'none';
+        document.getElementById('exit-button').style.display = 'block';
         document.getElementById('feedback').innerText = '';
         hasErrored = false;
         
         enToZh = Math.random() > 0.5;
         currentItem = vocabData[Math.floor(Math.random() * vocabData.length)];
 
-        if (enToZh) {
-            document.getElementById('q-text').innerHTML = `<span class="pos">${currentItem.pos}</span>${currentItem.en}`;
-            document.getElementById('q-ipa').innerText = currentItem.ipa;
-        } else {
-            document.getElementById('q-text').innerText = currentItem.zh;
-            document.getElementById('q-ipa').innerText = "";
-        }
+        document.getElementById('q-text').innerHTML = enToZh ? `<span class="pos">${currentItem.pos}</span>${currentItem.en}` : currentItem.zh;
+        document.getElementById('q-ipa').innerText = enToZh ? currentItem.ipa : "";
 
-        if (document.getElementById('voice-toggle').checked) {
-            speak(enToZh ? currentItem.en : currentItem.zh, enToZh ? 'en' : 'zh');
-        }
+        if (document.getElementById('voice-toggle').checked) speak(enToZh ? currentItem.en : currentItem.zh, enToZh ? 'en' : 'zh');
 
         let opts = [currentItem];
         while(opts.length < 5) {
@@ -123,44 +117,28 @@
         container.innerHTML = '';
         opts.forEach(o => {
             const btn = document.createElement('button');
-            if (enToZh) {
-                btn.innerText = o.zh;
-            } else {
-                btn.innerHTML = `<span><span class="pos">${o.pos}</span>${o.en}</span><span class="ipa">${o.ipa}</span>`;
-            }
-            btn.onclick = () => check(btn, o === currentItem);
+            btn.innerHTML = enToZh ? o.zh : `<span><span class="pos">${o.pos}</span>${o.en}</span><span class="ipa">${o.ipa}</span>`;
+            btn.onclick = () => {
+                if (o === currentItem) {
+                    btn.classList.add('correct');
+                    document.getElementById('feedback').innerText = "✅ 正確！";
+                    if (!hasErrored) score++;
+                    total++;
+                    document.getElementById('correct-count').innerText = score;
+                    document.getElementById('total-count').innerText = total;
+                    document.querySelectorAll('.options button').forEach(b => b.disabled = true);
+                    document.getElementById('next-button').style.display = 'block';
+                    document.getElementById('exit-button').style.display = 'none';
+                    if (document.getElementById('voice-toggle').checked) speak(enToZh ? currentItem.zh : currentItem.en, enToZh ? 'zh' : 'en');
+                } else {
+                    btn.classList.add('wrong');
+                    btn.disabled = true;
+                    hasErrored = true;
+                    document.getElementById('feedback').innerText = "❌ 再試一次！";
+                }
+            };
             container.appendChild(btn);
         });
-    }
-
-    function check(btn, isCorrect) {
-        const feedback = document.getElementById('feedback');
-        
-        if (isCorrect) {
-            btn.classList.add('correct');
-            feedback.innerText = "✅ 正確！";
-            feedback.style.color = "#2ecc71";
-            
-            if (!hasErrored) {
-                score++;
-            }
-            total++; 
-            
-            document.getElementById('correct-count').innerText = score;
-            document.getElementById('total-count').innerText = total;
-            document.querySelectorAll('.options button').forEach(b => b.disabled = true);
-            document.getElementById('next-button').style.display = 'block';
-            
-            if (document.getElementById('voice-toggle').checked) {
-                speak(enToZh ? currentItem.zh : currentItem.en, enToZh ? 'zh' : 'en');
-            }
-        } else {
-            btn.classList.add('wrong');
-            btn.disabled = true; 
-            hasErrored = true;
-            feedback.innerText = "❌ 不對喔，請再嘗試。";
-            feedback.style.color = "#e74c3c";
-        }
     }
 
     function speak(txt, lang) {
@@ -168,16 +146,6 @@
         u.lang = lang === 'en' ? 'en-US' : 'zh-TW';
         window.speechSynthesis.speak(u);
     }
-
-    function endGame() {
-        const rate = total === 0 ? 0 : Math.round((score / total) * 100);
-        alert(`練習結束！\n\n最終得分：${score} / ${total}\n正確率：${rate}%`);
-        
-        // 返回初始畫面
-        document.getElementById('game-screen').style.display = 'none';
-        document.getElementById('start-screen').style.display = 'block';
-    }
 </script>
-
 </body>
 </html>
