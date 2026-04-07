@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>歌詞挑戰 v9</title>
+    <title>歌詞挑戰 v10</title>
     <style>
         body { font-family: 'Microsoft JhengHei', -apple-system, sans-serif; background-color: #f0f4f8; display: flex; justify-content: center; padding: 15px; margin: 0; min-height: 100vh; }
         .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; box-sizing: border-box; position: relative; display: flex; flex-direction: column; }
@@ -12,8 +12,7 @@
         .question { font-size: 1.4em; font-weight: bold; margin-bottom: 10px; min-height: 70px; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid #f0f0f0; padding-bottom: 5px; }
         .ipa { font-size: 0.7em; color: #888; font-weight: normal; margin-top: 5px; }
         .pos { color: #1a73e8; font-size: 0.8em; font-style: italic; margin-right: 5px; }
-        .speaker-btn { background: #e8f0fe; border: 2px solid #4285f4; border-radius: 50%; width: 55px; height: 55px; font-size: 1.5em; cursor: pointer; margin: 0 auto 15px auto; display: flex; align-items: center; justify-content: center; transition: 0.2s; -webkit-tap-highlight-color: transparent; }
-        .speaker-btn:active { background: #d2e3fc; transform: scale(0.9); }
+        .speaker-btn { background: #e8f0fe; border: 2px solid #4285f4; border-radius: 50%; width: 50px; height: 50px; font-size: 1.4em; cursor: pointer; margin: 0 auto 15px auto; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
         #options-area { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-bottom: 15px; }
         .option-btn { padding: 15px; font-size: 1em; border: 2px solid #eee; border-radius: 12px; cursor: pointer; background: #fff; width: 100%; box-sizing: border-box; }
         .start-btn { background: #4285f4 !important; color: white !important; border: none; padding: 20px; font-size: 1.5em; font-weight: bold; border-radius: 15px; cursor: pointer; width: 80%; }
@@ -21,27 +20,26 @@
         .exit-btn { background: #ff4757 !important; color: white !important; border: none; padding: 12px; font-weight: bold; border-radius: 12px; font-size: 1em; cursor: pointer; width: 100%; }
         .correct { border-color: #2ecc71 !important; background: #e8f5e9 !important; color: #27ae60 !important; }
         .wrong { border-color: #e74c3c !important; background: #ffebee !important; color: #c0392b !important; }
-        #feedback { margin-bottom: 10px; font-weight: bold; height: 20px; font-size: 0.9em; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div id="start-screen">
-        <h2 style="color:#4285f4; margin-top:0;">Every Teardrop<br>歌詞挑戰 v9</h2>
-        <p style="color:#666;">語音引擎強制掛載模式</p>
+        <h2 style="color:#4285f4; margin-top:0;">Every Teardrop<br>歌詞挑戰 v10</h2>
+        <p style="color:#666;">穩定運行版</p>
         <button id="real-start-btn" class="start-btn">開始挑戰 🚀</button>
     </div>
 
     <div id="main-game">
         <div class="score-box">答對數 / 總題數: <span id="correct-count">0</span> / <span id="total-count">0</span></div>
         <div class="question">
-            <div id="q-text">載入中...</div>
+            <div id="q-text">準備中...</div>
             <div id="q-ipa" class="ipa"></div>
         </div>
         <button class="speaker-btn" id="manual-speak">🔊</button>
         <div id="options-area"></div>
-        <div id="feedback"></div>
+        <div id="feedback" style="margin-bottom:10px; font-weight:bold; height:20px; color:#e67e22;"></div>
         <button id="next-button" class="next-btn">繼續下一題 ➔</button>
         <button id="exit-button" class="exit-btn">結束練習 🏁</button>
     </div>
@@ -73,56 +71,42 @@
     ];
 
     let score = 0, total = 0, currentItem = {}, enToZh = true, hasErrored = false;
-    let synth = window.speechSynthesis;
 
-    // 強制預載語音清單 (解決手機版抓不到聲音的問題)
-    let voices = [];
-    function loadVoices() {
-        voices = synth.getVoices();
-    }
-    if (synth.onvoiceschanged !== undefined) {
-        synth.onvoiceschanged = loadVoices;
-    }
-    loadVoices();
-
+    // 極簡化語音函式
     function speak(txt, lang) {
-        if (!synth) {
-            document.getElementById('feedback').innerText = "❌ 瀏覽器不支援語音";
-            return;
+        try {
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(txt);
+                u.lang = lang === 'en' ? 'en-US' : 'zh-TW';
+                window.speechSynthesis.speak(u);
+            }
+        } catch (e) {
+            console.log("Speech error ignored to keep game running.");
         }
-        synth.cancel();
-        const u = new SpeechSynthesisUtterance(txt);
-        u.lang = lang === 'en' ? 'en-US' : 'zh-TW';
-        u.rate = 0.9;
-        u.volume = 1.0;
-
-        // 如果有聲音清單，嘗試指定第一個相符的
-        const foundVoice = voices.find(v => v.lang.includes(lang === 'en' ? 'en' : 'zh'));
-        if (foundVoice) u.voice = foundVoice;
-
-        u.onerror = (e) => {
-            document.getElementById('feedback').innerText = "❌ 語音引擎錯誤";
-        };
-        
-        synth.speak(u);
     }
 
-    document.getElementById('manual-speak').addEventListener('click', () => {
+    // 按鈕：手動朗讀
+    document.getElementById('manual-speak').onclick = function() {
         speak(enToZh ? currentItem.en : currentItem.zh, enToZh ? 'en' : 'zh');
-    });
+    };
 
-    document.getElementById('real-start-btn').addEventListener('click', function() {
-        speak("Start", "en"); 
+    // 按鈕：開始挑戰
+    document.getElementById('real-start-btn').onclick = function() {
         document.getElementById('start-screen').style.display = 'none';
         renderQuestion();
-    });
+        speak("Ready", "en"); 
+    };
 
-    document.getElementById('next-button').addEventListener('click', renderQuestion);
-    document.getElementById('exit-button').addEventListener('click', function() {
+    // 按鈕：下一題
+    document.getElementById('next-button').onclick = renderQuestion;
+
+    // 按鈕：結束
+    document.getElementById('exit-button').onclick = function() {
         const rate = total === 0 ? 0 : Math.round((score / total) * 100);
-        alert(`測驗結束！\n得分：${score} / ${total}\n正確率：${rate}%`);
+        alert(`練習結束！\n得分：${score} / ${total}\n正確率：${rate}%`);
         location.reload();
-    });
+    };
 
     function renderQuestion() {
         const area = document.getElementById('options-area');
@@ -137,6 +121,7 @@
         document.getElementById('q-text').innerHTML = enToZh ? `<span class="pos">${currentItem.pos}</span>${currentItem.en}` : currentItem.zh;
         document.getElementById('q-ipa').innerText = enToZh ? currentItem.ipa : "";
 
+        // 出題時自動嘗試朗讀
         speak(enToZh ? currentItem.en : currentItem.zh, enToZh ? 'en' : 'zh');
 
         let opts = [currentItem];
@@ -155,7 +140,7 @@
             btn.onclick = function() {
                 if (o === currentItem) {
                     btn.classList.add('correct');
-                    document.getElementById('feedback').innerText = "✅ 正確！";
+                    document.getElementById('feedback').innerText = "Excellent!";
                     if (!hasErrored) score++;
                     total++;
                     document.getElementById('correct-count').innerText = score;
@@ -168,7 +153,7 @@
                     btn.classList.add('wrong');
                     btn.disabled = true;
                     hasErrored = true;
-                    document.getElementById('feedback').innerText = "❌ 再試一次！";
+                    document.getElementById('feedback').innerText = "Try again!";
                 }
             };
             area.appendChild(btn);
