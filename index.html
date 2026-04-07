@@ -3,47 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>歌詞挑戰 v7</title>
+    <title>歌詞挑戰 v8</title>
     <style>
         body { font-family: 'Microsoft JhengHei', -apple-system, sans-serif; background-color: #f0f4f8; display: flex; justify-content: center; padding: 15px; margin: 0; min-height: 100vh; }
         .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; box-sizing: border-box; position: relative; display: flex; flex-direction: column; }
         #start-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
         .score-box { font-size: 1em; margin-bottom: 15px; color: #555; background: #eef; padding: 8px; border-radius: 10px; }
-        .question { font-size: 1.4em; font-weight: bold; margin-bottom: 20px; min-height: 70px; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
+        .question { font-size: 1.4em; font-weight: bold; margin-bottom: 10px; min-height: 70px; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid #f0f0f0; padding-bottom: 5px; }
         .ipa { font-size: 0.7em; color: #888; font-weight: normal; margin-top: 5px; }
         .pos { color: #1a73e8; font-size: 0.8em; font-style: italic; margin-right: 5px; }
-        #options-area { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-bottom: 15px; min-height: 200px; }
+        
+        /* 語音按鈕樣式 */
+        .speaker-btn { background: #f8f9fa; border: 1px solid #ddd; border-radius: 50%; width: 45px; height: 45px; font-size: 1.2em; cursor: pointer; margin-bottom: 15px; align-self: center; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .speaker-btn:active { background: #e2e6ea; transform: scale(0.9); }
+
+        #options-area { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-bottom: 15px; }
         .option-btn { padding: 15px; font-size: 1em; border: 2px solid #eee; border-radius: 12px; cursor: pointer; background: #fff; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; }
         .start-btn { background: #4285f4 !important; color: white !important; border: none !important; padding: 20px; font-size: 1.5em; font-weight: bold; border-radius: 15px; cursor: pointer; width: 80%; }
         .next-btn { background: #34a853 !important; color: white !important; border: none !important; padding: 18px; font-weight: bold; margin-bottom: 10px; font-size: 1.2em; display: none; border-radius: 12px; }
         .exit-btn { background: #ff4757 !important; color: white !important; border: none !important; padding: 12px; font-weight: bold; border-radius: 12px; font-size: 1em; cursor: pointer; width: 100%; }
         .correct { border-color: #2ecc71 !important; background: #e8f5e9 !important; color: #27ae60 !important; }
         .wrong { border-color: #e74c3c !important; background: #ffebee !important; color: #c0392b !important; }
-        #feedback { margin-bottom: 10px; font-weight: bold; height: 20px; font-size: 1em; }
+        #feedback { margin-bottom: 10px; font-weight: bold; height: 20px; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div id="start-screen">
-        <h2 style="color:#4285f4; margin-top:0;">Every Teardrop<br>歌詞挑戰 v7</h2>
-        <p style="color:#666;">語音驅動模式</p>
+        <h2 style="color:#4285f4; margin-top:0;">Every Teardrop<br>歌詞挑戰 v8</h2>
+        <p style="color:#666;">點擊開始並測試語音</p>
         <button id="real-start-btn" class="start-btn">開始挑戰 🚀</button>
     </div>
 
     <div id="main-game">
         <div class="score-box">答對數 / 總題數: <span id="correct-count">0</span> / <span id="total-count">0</span></div>
+        
         <div class="question">
             <div id="q-text">載入中...</div>
             <div id="q-ipa" class="ipa"></div>
         </div>
+
+        <button class="speaker-btn" onclick="playCurrentVocab()" title="聽發音">🔊</button>
+
         <div id="options-area"></div>
         <div id="feedback"></div>
         <button id="next-button" class="next-btn">繼續下一題 ➔</button>
         <button id="exit-button" class="exit-btn">結束練習 🏁</button>
-        <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-            <label><input type="checkbox" id="voice-toggle" checked> 🔊 語音開啟</label>
-        </div>
     </div>
 </div>
 
@@ -74,19 +80,22 @@
 
     let score = 0, total = 0, currentItem = {}, enToZh = true, hasErrored = false;
 
-    // 核心優化：直接朗讀，不帶任何延遲
     function speak(txt, lang) {
         if (!window.speechSynthesis) return;
         window.speechSynthesis.cancel(); 
         const u = new SpeechSynthesisUtterance(txt);
         u.lang = lang === 'en' ? 'en-US' : 'zh-TW';
-        u.rate = 1.0;
+        u.rate = 0.9;
         window.speechSynthesis.speak(u);
     }
 
+    // 全域函數讓按鈕可以呼叫
+    window.playCurrentVocab = function() {
+        speak(enToZh ? currentItem.en : currentItem.zh, enToZh ? 'en' : 'zh');
+    };
+
     document.getElementById('real-start-btn').addEventListener('click', function() {
-        // 第一時間先講一句空話，這在手機上最容易解鎖成功
-        speak(" ", "en"); 
+        speak("Welcome", "en"); // 點擊當下立即解鎖語音
         document.getElementById('start-screen').style.display = 'none';
         renderQuestion();
     });
@@ -111,10 +120,8 @@
         document.getElementById('q-text').innerHTML = enToZh ? `<span class="pos">${currentItem.pos}</span>${currentItem.en}` : currentItem.zh;
         document.getElementById('q-ipa').innerText = enToZh ? currentItem.ipa : "";
 
-        // 題目語音
-        if (document.getElementById('voice-toggle').checked) {
-            speak(enToZh ? currentItem.en : currentItem.zh, enToZh ? 'en' : 'zh');
-        }
+        // 嘗試自動朗讀
+        speak(enToZh ? currentItem.en : currentItem.zh, enToZh ? 'en' : 'zh');
 
         let opts = [currentItem];
         while(opts.length < 5) {
@@ -132,7 +139,7 @@
             btn.onclick = function() {
                 if (o === currentItem) {
                     btn.classList.add('correct');
-                    document.getElementById('feedback').innerText = "✅ 正確！";
+                    document.getElementById('feedback').innerText = "✅ 正獲！";
                     if (!hasErrored) score++;
                     total++;
                     document.getElementById('correct-count').innerText = score;
@@ -140,10 +147,8 @@
                     document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
                     document.getElementById('next-button').style.display = 'block';
                     document.getElementById('exit-button').style.display = 'none';
-                    // 答對朗讀，由使用者點擊直接觸發，通常手機最穩
-                    if (document.getElementById('voice-toggle').checked) {
-                        speak(enToZh ? currentItem.zh : currentItem.en, enToZh ? 'zh' : 'en');
-                    }
+                    // 答對時手動觸發一次
+                    speak(enToZh ? currentItem.zh : currentItem.en, enToZh ? 'zh' : 'en');
                 } else {
                     btn.classList.add('wrong');
                     btn.disabled = true;
