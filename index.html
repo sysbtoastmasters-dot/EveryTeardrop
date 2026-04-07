@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Every Teardrop 歌詞挑戰 v5</title>
+    <title>Every Teardrop 歌詞挑戰 v6</title>
     <style>
         body { font-family: 'Microsoft JhengHei', -apple-system, sans-serif; background-color: #f0f4f8; display: flex; justify-content: center; padding: 15px; margin: 0; min-height: 100vh; }
         .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; box-sizing: border-box; position: relative; display: flex; flex-direction: column; }
@@ -14,8 +13,8 @@
         .ipa { font-size: 0.7em; color: #888; font-weight: normal; margin-top: 5px; }
         .pos { color: #1a73e8; font-size: 0.8em; font-style: italic; margin-right: 5px; }
         #options-area { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-bottom: 15px; min-height: 200px; }
-        .option-btn { padding: 15px; font-size: 1em; border: 2px solid #eee; border-radius: 12px; cursor: pointer; background: #fff; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; }
-        .start-btn { background: #4285f4 !important; color: white !important; border: none !important; padding: 20px; font-size: 1.5em; font-weight: bold; border-radius: 15px; cursor: pointer; width: 80%; }
+        .option-btn { padding: 15px; font-size: 1em; border: 2px solid #eee; border-radius: 12px; cursor: pointer; background: #fff; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        .start-btn { background: #4285f4 !important; color: white !important; border: none !important; padding: 20px; font-size: 1.5em; font-weight: bold; border-radius: 15px; cursor: pointer; width: 80%; -webkit-appearance: none; }
         .next-btn { background: #34a853 !important; color: white !important; border: none !important; padding: 18px; font-weight: bold; margin-bottom: 10px; font-size: 1.2em; display: none; border-radius: 12px; }
         .exit-btn { background: #ff4757 !important; color: white !important; border: none !important; padding: 12px; font-weight: bold; border-radius: 12px; font-size: 1em; cursor: pointer; width: 100%; }
         .correct { border-color: #2ecc71 !important; background: #e8f5e9 !important; color: #27ae60 !important; }
@@ -27,8 +26,8 @@
 
 <div class="card">
     <div id="start-screen">
-        <h2 style="color:#4285f4; margin-top:0;">Every Teardrop<br>歌詞挑戰 v5</h2>
-        <p style="color:#666;">語音強化版</p>
+        <h2 style="color:#4285f4; margin-top:0;">Every Teardrop<br>歌詞挑戰 v6</h2>
+        <p style="color:#666;">優化啟動流暢度</p>
         <button id="real-start-btn" class="start-btn">開始挑戰 🚀</button>
     </div>
 
@@ -43,7 +42,7 @@
         <button id="next-button" class="next-btn">繼續下一題 ➔</button>
         <button id="exit-button" class="exit-btn">結束練習 🏁</button>
         <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-            <label><input type="checkbox" id="voice-toggle" checked> 🔊 語音開啟</label>
+            <label style="cursor:pointer;"><input type="checkbox" id="voice-toggle" checked> 🔊 語音開啟</label>
         </div>
     </div>
 </div>
@@ -75,16 +74,22 @@
 
     let score = 0, total = 0, currentItem = {}, enToZh = true, hasErrored = false;
 
-    // 手機版必須在第一次點擊時「啟動」一個空白語音
+    // 非同步解鎖語音
     function unlockVoice() {
+        if (!('speechSynthesis' in window)) return;
         const u = new SpeechSynthesisUtterance("");
+        u.volume = 0;
         window.speechSynthesis.speak(u);
     }
 
     document.getElementById('real-start-btn').addEventListener('click', function() {
-        unlockVoice(); // 關鍵：解鎖語音
+        // 先切換畫面，避免被語音 API 擋住
         document.getElementById('start-screen').style.display = 'none';
-        renderQuestion();
+        // 延遲一下下執行解鎖與出題
+        setTimeout(() => {
+            unlockVoice();
+            renderQuestion();
+        }, 50);
     });
 
     document.getElementById('next-button').addEventListener('click', renderQuestion);
@@ -135,7 +140,6 @@
                     document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
                     document.getElementById('next-button').style.display = 'block';
                     document.getElementById('exit-button').style.display = 'none';
-                    // 答對時手機也朗讀一次
                     if (document.getElementById('voice-toggle').checked) {
                         speak(enToZh ? currentItem.zh : currentItem.en, enToZh ? 'zh' : 'en');
                     }
@@ -152,13 +156,11 @@
 
     function speak(txt, lang) {
         if (!window.speechSynthesis) return;
-        // 修正：先取消之前還沒講完的，防止手機佇列卡死
         window.speechSynthesis.cancel(); 
         
         const u = new SpeechSynthesisUtterance(txt);
-        // 手機版語音挑選邏輯優化
         u.lang = lang === 'en' ? 'en-US' : 'zh-TW';
-        u.rate = 0.9; // 稍微放慢一點點
+        u.rate = 1.0; 
         window.speechSynthesis.speak(u);
     }
 })();
