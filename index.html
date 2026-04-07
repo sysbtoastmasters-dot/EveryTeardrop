@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>歌詞挑戰 v12</title>
+    <title>歌詞挑戰 v13</title>
     <style>
         body { font-family: 'Microsoft JhengHei', sans-serif; background-color: #f0f4f8; display: flex; justify-content: center; padding: 15px; margin: 0; min-height: 100vh; }
         .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; box-sizing: border-box; }
@@ -12,21 +12,20 @@
         .question { font-size: 1.4em; font-weight: bold; margin-bottom: 10px; min-height: 70px; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid #f0f0f0; padding-bottom: 5px; }
         .ipa { font-size: 0.7em; color: #888; font-weight: normal; margin-top: 5px; }
         .pos { color: #1a73e8; font-size: 0.8em; font-style: italic; margin-right: 5px; }
-        .speaker-btn { background: #e8f0fe; border: 2px solid #4285f4; border-radius: 50%; width: 55px; height: 55px; font-size: 1.5em; cursor: pointer; margin: 0 auto 15px auto; display: flex; align-items: center; justify-content: center; }
+        .speaker-btn { background: #e8f0fe; border: 2px solid #4285f4; border-radius: 50%; width: 60px; height: 60px; font-size: 1.6em; cursor: pointer; margin: 0 auto 15px auto; display: flex; align-items: center; justify-content: center; }
         #options-area { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-bottom: 15px; }
         .option-btn { padding: 15px; font-size: 1em; border: 2px solid #eee; border-radius: 12px; cursor: pointer; background: #fff; width: 100%; box-sizing: border-box; }
         .start-btn { background: #4285f4 !important; color: white !important; border: none; padding: 20px; font-size: 1.5em; font-weight: bold; border-radius: 15px; cursor: pointer; width: 80%; }
         .next-btn { background: #34a853 !important; color: white !important; border: none; padding: 18px; font-weight: bold; margin-bottom: 10px; font-size: 1.2em; display: none; border-radius: 12px; }
-        .correct { border-color: #2ecc71 !important; background: #e8f5e9 !important; color: #27ae60 !important; }
-        .wrong { border-color: #e74c3c !important; background: #ffebee !important; color: #c0392b !important; }
+        #debug-info { font-size: 0.7em; color: #999; margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 5px; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div id="start-screen">
-        <h2 style="color:#4285f4; margin-top:0;">Every Teardrop<br>歌詞挑戰 v12</h2>
-        <p style="color:#666;">穩定恢復版</p>
+        <h2 style="color:#4285f4; margin-top:0;">Every Teardrop<br>歌詞挑戰 v13</h2>
+        <p style="color:#666;">語音引擎重新初始化版</p>
         <button id="real-start-btn" class="start-btn">點我開始 🚀</button>
     </div>
 
@@ -36,10 +35,12 @@
             <div id="q-text">準備中...</div>
             <div id="q-ipa" class="ipa"></div>
         </div>
-        <button class="speaker-btn" id="manual-speak">🔊 聽發音</button>
+        <button class="speaker-btn" id="manual-speak">🔊</button>
         <div id="options-area"></div>
-        <div id="feedback" style="margin-bottom:10px; font-weight:bold; height:20px;"></div>
+        <div id="feedback" style="margin-bottom:10px; font-weight:bold; height:20px; color:#e67e22;"></div>
         <button id="next-button" class="next-btn">下一題 ➔</button>
+        
+        <div id="debug-info">系統診斷: 準備就緒</div>
     </div>
 </div>
 
@@ -69,26 +70,37 @@
     ];
 
     let score = 0, total = 0, currentItem = {}, enToZh = true;
+    const debug = document.getElementById('debug-info');
 
-    // 核心語音函數：絕對不使用外部連結，只用內建 API
     function speakText(txt, lang) {
-        if (!window.speechSynthesis) return;
-        window.speechSynthesis.cancel(); // 先清空佇列
+        if (!window.speechSynthesis) {
+            debug.innerText = "診斷: 瀏覽器不支援語音";
+            return;
+        }
+
+        // 強制重置語音引擎
+        window.speechSynthesis.cancel();
+        
         const utterance = new SpeechSynthesisUtterance(txt);
         utterance.lang = (lang === 'en') ? 'en-US' : 'zh-TW';
         utterance.rate = 0.9;
+        utterance.volume = 1.0;
+
+        utterance.onstart = () => debug.innerText = "診斷: 正在播放 - " + txt;
+        utterance.onerror = (e) => debug.innerText = "診斷: 語音錯誤 (" + e.error + ")";
+
         window.speechSynthesis.speak(utterance);
     }
 
     document.getElementById('real-start-btn').onclick = function() {
         document.getElementById('start-screen').style.display = 'none';
         renderQuestion();
-        speakText("Start", "en"); // 點擊時啟動引擎
+        // 第一次啟動必須在點擊事件內
+        speakText("Start Test", "en");
     };
 
     document.getElementById('manual-speak').onclick = function() {
-        const textToSay = enToZh ? currentItem.en : currentItem.zh;
-        speakText(textToSay, enToZh ? 'en' : 'zh');
+        speakText(enToZh ? currentItem.en : currentItem.zh, enToZh ? 'en' : 'zh');
     };
 
     document.getElementById('next-button').onclick = renderQuestion;
@@ -104,10 +116,10 @@
         document.getElementById('q-text').innerHTML = enToZh ? `<span class="pos">${currentItem.pos}</span>${currentItem.en}` : currentItem.zh;
         document.getElementById('q-ipa').innerText = enToZh ? currentItem.ipa : "";
 
-        // 出題後嘗試自動播放一次
+        // 出題後自動嘗試朗讀
         setTimeout(() => {
             speakText(enToZh ? currentItem.en : currentItem.zh, enToZh ? 'en' : 'zh');
-        }, 100);
+        }, 300);
 
         let opts = [currentItem];
         while(opts.length < 5) {
@@ -124,7 +136,8 @@
             
             btn.onclick = function() {
                 if (o === currentItem) {
-                    btn.classList.add('correct');
+                    this.style.borderColor = '#2ecc71';
+                    this.style.background = '#e8f5e9';
                     document.getElementById('feedback').innerText = "✅ Excellent!";
                     score++; total++;
                     document.getElementById('correct-count').innerText = score;
@@ -133,8 +146,8 @@
                     document.getElementById('next-button').style.display = 'block';
                     speakText(enToZh ? currentItem.zh : currentItem.en, enToZh ? 'zh' : 'en');
                 } else {
-                    btn.classList.add('wrong');
-                    btn.disabled = true;
+                    this.style.borderColor = '#e74c3c';
+                    this.style.background = '#ffebee';
                     document.getElementById('feedback').innerText = "❌ Try again!";
                 }
             };
