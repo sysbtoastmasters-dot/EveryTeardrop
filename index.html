@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>歌詞挑戰 v10</title>
+    <title>歌詞挑戰 v11</title>
     <style>
         body { font-family: 'Microsoft JhengHei', -apple-system, sans-serif; background-color: #f0f4f8; display: flex; justify-content: center; padding: 15px; margin: 0; min-height: 100vh; }
-        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; box-sizing: border-box; position: relative; display: flex; flex-direction: column; }
+        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; box-sizing: border-box; position: relative; }
         #start-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
         .score-box { font-size: 1em; margin-bottom: 15px; color: #555; background: #eef; padding: 8px; border-radius: 10px; }
         .question { font-size: 1.4em; font-weight: bold; margin-bottom: 10px; min-height: 70px; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid #f0f0f0; padding-bottom: 5px; }
@@ -26,8 +26,8 @@
 
 <div class="card">
     <div id="start-screen">
-        <h2 style="color:#4285f4; margin-top:0;">Every Teardrop<br>歌詞挑戰 v10</h2>
-        <p style="color:#666;">穩定運行版</p>
+        <h2 style="color:#4285f4; margin-top:0;">Every Teardrop<br>歌詞挑戰 v11</h2>
+        <p style="color:#666;">雲端語音版 (Cloud Audio)</p>
         <button id="real-start-btn" class="start-btn">開始挑戰 🚀</button>
     </div>
 
@@ -40,10 +40,12 @@
         <button class="speaker-btn" id="manual-speak">🔊</button>
         <div id="options-area"></div>
         <div id="feedback" style="margin-bottom:10px; font-weight:bold; height:20px; color:#e67e22;"></div>
-        <button id="next-button" class="next-btn">繼續下一題 ➔</button>
-        <button id="exit-button" class="exit-btn">結束練習 🏁</button>
+        <button id="next-button" class="next-btn">下一題 ➔</button>
+        <button id="exit-button" class="exit-btn">結束 🏁</button>
     </div>
 </div>
+
+<audio id="audio-player" style="display:none;"></audio>
 
 <script>
 (function() {
@@ -71,40 +73,29 @@
     ];
 
     let score = 0, total = 0, currentItem = {}, enToZh = true, hasErrored = false;
+    const player = document.getElementById('audio-player');
 
-    // 極簡化語音函式
-    function speak(txt, lang) {
-        try {
-            if (window.speechSynthesis) {
-                window.speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance(txt);
-                u.lang = lang === 'en' ? 'en-US' : 'zh-TW';
-                window.speechSynthesis.speak(u);
-            }
-        } catch (e) {
-            console.log("Speech error ignored to keep game running.");
-        }
+    // 使用 Google 雲端語音替代手機內建語音
+    function playCloudAudio(txt, lang) {
+        const queryLang = (lang === 'en') ? 'en' : 'zh-TW';
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(txt)}&tl=${queryLang}&client=tw-ob`;
+        player.src = url;
+        player.play().catch(e => console.log("播放被阻擋"));
     }
 
-    // 按鈕：手動朗讀
     document.getElementById('manual-speak').onclick = function() {
-        speak(enToZh ? currentItem.en : currentItem.zh, enToZh ? 'en' : 'zh');
+        playCloudAudio(enToZh ? currentItem.en : currentItem.zh, enToZh ? 'en' : 'zh');
     };
 
-    // 按鈕：開始挑戰
     document.getElementById('real-start-btn').onclick = function() {
         document.getElementById('start-screen').style.display = 'none';
         renderQuestion();
-        speak("Ready", "en"); 
+        playCloudAudio("Let's go", "en"); 
     };
 
-    // 按鈕：下一題
     document.getElementById('next-button').onclick = renderQuestion;
-
-    // 按鈕：結束
     document.getElementById('exit-button').onclick = function() {
-        const rate = total === 0 ? 0 : Math.round((score / total) * 100);
-        alert(`練習結束！\n得分：${score} / ${total}\n正確率：${rate}%`);
+        alert(`得分：${score} / ${total}`);
         location.reload();
     };
 
@@ -121,8 +112,8 @@
         document.getElementById('q-text').innerHTML = enToZh ? `<span class="pos">${currentItem.pos}</span>${currentItem.en}` : currentItem.zh;
         document.getElementById('q-ipa').innerText = enToZh ? currentItem.ipa : "";
 
-        // 出題時自動嘗試朗讀
-        speak(enToZh ? currentItem.en : currentItem.zh, enToZh ? 'en' : 'zh');
+        // 自動播放題目語音
+        playCloudAudio(enToZh ? currentItem.en : currentItem.zh, enToZh ? 'en' : 'zh');
 
         let opts = [currentItem];
         while(opts.length < 5) {
@@ -148,7 +139,7 @@
                     document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
                     document.getElementById('next-button').style.display = 'block';
                     document.getElementById('exit-button').style.display = 'none';
-                    speak(enToZh ? currentItem.zh : currentItem.en, enToZh ? 'zh' : 'en');
+                    playCloudAudio(enToZh ? currentItem.zh : currentItem.en, enToZh ? 'zh' : 'en');
                 } else {
                     btn.classList.add('wrong');
                     btn.disabled = true;
